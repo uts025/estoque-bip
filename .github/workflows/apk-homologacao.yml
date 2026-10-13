@@ -1,5 +1,5 @@
 name: APK homologacao manual
-# Build consolidado da interface compacta: 2026-10-13
+# Homologacao FAB e Revisao de Local - 2026-10-13
 on:
   push:
     branches: [feat/inventario-anual-integracao]
