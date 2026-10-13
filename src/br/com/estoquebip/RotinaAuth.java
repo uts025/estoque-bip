@@ -13,6 +13,8 @@ import java.util.concurrent.Executors;
 /** Reuses existing Rotina360 auth-login without modifying that endpoint. */
 final class RotinaAuth {
  static final String PROJECT_URL="https://acrfztgyuuisjtxbgxih.supabase.co";
+ // Public anonymous JWT required by legacy verify_jwt gateway. NOT a service role key.
+ private static final String ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjcmZ6dGd5dXVpc2p0eGJneGloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5MzY5NzUsImV4cCI6MjA5NzUxMjk3NX0.pwr-jnIQYL2mi5QSS0d1WoEhC_RYZPbEv6mZzwG2yDs";
  private static final ExecutorService EXECUTOR=Executors.newSingleThreadExecutor();
  interface Callback { void complete(JSONObject session,String error); }
  static void login(String identifier,String password,Callback callback) {
@@ -23,6 +25,8 @@ final class RotinaAuth {
     connection.setRequestMethod("POST");
     connection.setConnectTimeout(10000);connection.setReadTimeout(15000);
     connection.setDoOutput(true);connection.setRequestProperty("Content-Type","application/json");
+    connection.setRequestProperty("apikey",ANON_KEY);
+    connection.setRequestProperty("Authorization","Bearer "+ANON_KEY);
     // The endpoint may require a publishable key at its gateway; configure
     // this separately instead of embedding a service-role credential.
     JSONObject body=new JSONObject().put("identificador",identifier).put("senha",password);
