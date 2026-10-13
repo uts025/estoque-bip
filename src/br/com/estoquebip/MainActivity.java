@@ -110,7 +110,7 @@ public class MainActivity extends Activity {
   StringBuilder lines=new StringBuilder();
   try(Cursor c=db.rawQuery("SELECT item,quantidade,unidade,total_pc FROM inv_anual_revisao_rascunho WHERE local=? ORDER BY id",new String[]{revisionLocal})){
     while(c.moveToNext()){
-     if(lines.length()>0)lines.append("\\n");
+     if(lines.length()>0)lines.append("\n");
      lines.append(c.getString(0)).append(" — ").append(c.getString(1)).append(" ").append(c.getString(2)==null?"PC":c.getString(2));
      if(c.getString(3)!=null)lines.append(" (").append(c.getString(3)).append(" PC)");
     }
