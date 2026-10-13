@@ -17,6 +17,36 @@ final class RotinaAuth {
  private static final String ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjcmZ6dGd5dXVpc2p0eGJneGloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5MzY5NzUsImV4cCI6MjA5NzUxMjk3NX0.pwr-jnIQYL2mi5QSS0d1WoEhC_RYZPbEv6mZzwG2yDs";
  private static final ExecutorService EXECUTOR=Executors.newSingleThreadExecutor();
  interface Callback { void complete(JSONObject session,String error); }
+ static void refresh(String refreshToken,Callback callback) {
+  EXECUTOR.execute(()->{
+   JSONObject result=null;String error=null;HttpURLConnection connection=null;
+   try {
+    connection=(HttpURLConnection)new URL(PROJECT_URL+"/auth/v1/token?grant_type=refresh_token").openConnection();
+    connection.setRequestMethod("POST");
+    connection.setConnectTimeout(10000);connection.setReadTimeout(15000);
+    connection.setDoOutput(true);connection.setRequestProperty("Content-Type","application/json");
+    connection.setRequestProperty("apikey",ANON_KEY);
+    JSONObject body=new JSONObject().put("refresh_token",refreshToken);
+    try(OutputStream out=connection.getOutputStream()){out.write(body.toString().getBytes("UTF-8"));}
+    int status=connection.getResponseCode();
+    InputStream input=status>=200&&status<300?connection.getInputStream():connection.getErrorStream();
+    java.io.ByteArrayOutputStream data=new java.io.ByteArrayOutputStream();
+    if(input!=null)try(InputStream in=input){byte[] buffer=new byte[2048];int n;while((n=in.read(buffer))!=-1){if(data.size()+n>32768)throw new Exception("Resposta excede limite");data.write(buffer,0,n);}}
+    if(status==200){
+     JSONObject response=new JSONObject(data.toString("UTF-8"));
+     if(response.has("access_token")&&response.has("refresh_token")&&response.has("user")){
+      result=new JSONObject().put("access_token",response.getString("access_token"))
+       .put("refresh_token",response.getString("refresh_token"))
+       .put("user_id",response.getJSONObject("user").getString("id"))
+       .put("expires_at",response.optLong("expires_at",0));
+     }else error="Resposta de renovação inválida.";
+    }else error=status==400||status==401?"Sessão expirada ou revogada. Entre novamente.":"Falha na renovação ("+status+").";
+   }catch(Exception ex){error="Sem conexão para renovar a sessão.";}
+   finally{if(connection!=null)connection.disconnect();}
+   JSONObject finalResult=result;String finalError=error;
+   new Handler(Looper.getMainLooper()).post(()->callback.complete(finalResult,finalError));
+  });
+ }
  static void login(String identifier,String password,Callback callback) {
   EXECUTOR.execute(()->{
    JSONObject result=null;String error=null;HttpURLConnection connection=null;
