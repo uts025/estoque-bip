@@ -14,7 +14,7 @@ final class SyncBatch {
    throw new IllegalArgumentException("Campanha e dispositivo obrigatorios");
   List<JSONObject> events = new ArrayList<>();
   try(Cursor c=db.rawQuery(
-   "SELECT event_uuid,count_uuid,action,item,codigo_lido,local,quantidade,unidade,pecas_extras,pack_pc,total_pc,recorded_at,changed_at FROM inv_anual_outbox WHERE acknowledged_at IS NULL ORDER BY queued_at,rowid LIMIT ?",
+   "SELECT event_uuid,count_uuid,action,item,codigo_lido,local,quantidade,unidade,pecas_extras,pack_pc,total_pc,recorded_at,changed_at,rowid FROM inv_anual_outbox WHERE acknowledged_at IS NULL ORDER BY queued_at,rowid LIMIT ?",
    new String[]{Integer.toString(Math.max(1,Math.min(limit,100)))})) {
     while(c.moveToNext()){
      JSONObject event=new JSONObject();
@@ -26,7 +26,7 @@ final class SyncBatch {
      event.put("unidade",c.getString(7));event.put("pecas_extras",c.getString(8));
      event.put("pack_pc",c.getString(9));event.put("total_pc",c.getString(10));
      event.put("registrado_em",new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX",java.util.Locale.US).format(new java.util.Date(c.getLong(11))));
-     event.put("versao",1); // Placeholder: real per-count versions must be persisted before enabling delivery.
+     try(Cursor sequence=db.rawQuery("SELECT count(*) FROM inv_anual_outbox WHERE count_uuid=? AND rowid<=?",new String[]{c.getString(1),Long.toString(c.getLong(13))})) { if(!sequence.moveToFirst()) throw new IllegalStateException("Sequencia de evento ausente"); event.put("versao",sequence.getInt(0)); }
      events.add(event);
     }
   }
