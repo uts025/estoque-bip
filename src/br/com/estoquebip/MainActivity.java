@@ -85,7 +85,7 @@ public class MainActivity extends Activity {
  }
  void addPageNav(){
   navBar=new LinearLayout(this);navBar.setOrientation(LinearLayout.HORIZONTAL);
-  navBar.setPadding(dp(8),dp(10),dp(8),dp(8));
+  navBar.setPadding(dp(8),dp(7),dp(8),dp(7));navBar.setBackgroundColor(Color.WHITE);
   final String[] names={"Contagem","Histórico","Conta"};
   for(int n=0;n<names.length;n++){final int index=n;Button b=new Button(this);
    b.setText(names[n]);b.setAllCaps(false);b.setTextSize(13);
@@ -93,9 +93,9 @@ public class MainActivity extends Activity {
    lp.setMargins(dp(3),0,dp(3),0);navBar.addView(b,lp);
    b.setOnClickListener(v->showPage(index));
   }
-  root.addView(navBar);
+  LinearLayout frame=(LinearLayout)screenScroll.getParent();frame.addView(navBar,new LinearLayout.LayoutParams(-1,dp(70)));
  }
- void draw(){getWindow().setStatusBarColor(navy);getWindow().setNavigationBarColor(navy); ScrollView scroll=new ScrollView(this);screenScroll=scroll;scroll.setFillViewport(true);root=column();root.setBackgroundColor(Color.rgb(245,248,251));scroll.addView(root);setContentView(scroll);
+ void draw(){getWindow().setStatusBarColor(navy);getWindow().setNavigationBarColor(navy); LinearLayout appFrame=column();appFrame.setBackgroundColor(Color.rgb(245,248,251));ScrollView scroll=new ScrollView(this);screenScroll=scroll;scroll.setFillViewport(true);root=column();root.setBackgroundColor(Color.rgb(245,248,251));scroll.addView(root);appFrame.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));setContentView(appFrame);
  LinearLayout header=column();GradientDrawable hero=new GradientDrawable(GradientDrawable.Orientation.TL_BR,new int[]{navy,Color.rgb(15,83,99)});hero.setCornerRadius(dp(24));header.setBackground(hero);header.setPadding(dp(20),dp(14),dp(20),dp(14));TextView badge=text("●  OFFLINE  /  INVENTÁRIO",11,Color.rgb(126,230,212));badge.setLetterSpacing(.12f);header.addView(badge);TextView title=text("Estoque Bip • 1.6",26,Color.WHITE);title.setTypeface(null,Typeface.BOLD);header.addView(title);stats=text("",15,Color.WHITE);stats.setPadding(dp(12),dp(8),dp(12),dp(8));stats.setBackground(bg(Color.argb(35,255,255,255)));header.addView(stats);root.addView(header);
  addPageNav();
  countPage=column();historyPage=column();accountPage=column();root.addView(countPage);root.addView(historyPage);root.addView(accountPage);
