@@ -48,7 +48,7 @@ final class ProductScanNormalizer {
      embedded.add(tail.substring(0, 11));
      continue;
     }
-    char previous = i == 0 ? '\\0' : core.charAt(i - 1);
+    char previous = i == 0 ? 'X' : core.charAt(i - 1);
     if (tail.matches("^60[0-9]{8}.*") && previous != '2' && previous != '3' && previous != '4') {
      String body = tail.substring(0, 10);
      for (String prefix : new String[]{"2","3","4"}) embedded.add(prefix + body);
