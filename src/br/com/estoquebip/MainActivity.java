@@ -20,7 +20,7 @@ import java.io.*;
 public class MainActivity extends Activity {
  boolean packWarningOpen=false;String lastPackWarning="";Handler packHandler=new Handler(Looper.getMainLooper());Runnable pendingPackCheck;PackCatalog packs; EditText extra; TextView packInfo,extraLabel; LocationCatalog locations; boolean invalidLocalDialogOpen=false; SQLiteDatabase db; LinearLayout root, form, history, countPage, historyPage, accountPage, revisionPage, navBar; ScrollView screenScroll; int activeTab=0; EditText item, local, qty, search; CheckBox keep; RadioGroup units; TextView stats, syncIndicator, countFeedback; long editing=-1; String scanTarget="item"; String filter="", revisionLocal=""; boolean revisionMode=false; TextView revisionStatus; EditText revisionInput; int navy=Color.rgb(16,39,64), teal=Color.rgb(0,118,115);
  int dp(int n){return (int)(n*getResources().getDisplayMetrics().density);}
- public void onCreate(Bundle b){super.onCreate(b);try{locations=new LocationCatalog(new InputStreamReader(getAssets().open("locais_validos.txt"),"UTF-8"));}catch(IOException e){locations=null;}try{packs=new PackCatalog(new InputStreamReader(getAssets().open("packs_produtos.tsv"),"UTF-8"));}catch(Exception e){packs=null;} db=openOrCreateDatabase("estoque.db",MODE_PRIVATE,null); db.execSQL("CREATE TABLE IF NOT EXISTS registros(id INTEGER PRIMARY KEY AUTOINCREMENT,item TEXT NOT NULL,local TEXT NOT NULL,quantidade TEXT NOT NULL,data INTEGER NOT NULL,alterado INTEGER)"); migrateUnits();migratePacks(); migrateOfflineSync(); OfflineOutbox.install(db); LocalReferenceCache.install(db); LocationRevision.install(db); draw(); if(b!=null){item.setText(b.getString("item",""));local.setText(b.getString("local",""));qty.setText(b.getString("qty","1"));editing=b.getLong("editing",-1);scanTarget=b.getString("target","item");keep.setChecked(b.getBoolean("keep",true));selectUnit(b.getString("unit","PC"));extra.setText(b.getString("extra","0"));updatePackInfo();revisionLocal=b.getString("revisionLocal","");revisionMode=b.getBoolean("revisionMode",false);updateRevisionStatus();showPage(b.getInt("activeTab",0));}}
+ public void onCreate(Bundle b){super.onCreate(b);try{locations=new LocationCatalog(new InputStreamReader(getAssets().open("locais_validos.txt"),"UTF-8"));}catch(IOException e){locations=null;}try{packs=new PackCatalog(new InputStreamReader(getAssets().open("packs_produtos.tsv"),"UTF-8"));}catch(Exception e){packs=null;} db=openOrCreateDatabase("estoque.db",MODE_PRIVATE,null); db.execSQL("CREATE TABLE IF NOT EXISTS registros(id INTEGER PRIMARY KEY AUTOINCREMENT,item TEXT NOT NULL,local TEXT NOT NULL,quantidade TEXT NOT NULL,data INTEGER NOT NULL,alterado INTEGER)"); migrateUnits();migratePacks(); migrateOfflineSync(); OfflineOutbox.install(db); LocalReferenceCache.install(db); LocationRevision.install(db); draw();showLoginGate(); if(b!=null){item.setText(b.getString("item",""));local.setText(b.getString("local",""));qty.setText(b.getString("qty","1"));editing=b.getLong("editing",-1);scanTarget=b.getString("target","item");keep.setChecked(b.getBoolean("keep",true));selectUnit(b.getString("unit","PC"));extra.setText(b.getString("extra","0"));updatePackInfo();revisionLocal=b.getString("revisionLocal","");revisionMode=b.getBoolean("revisionMode",false);updateRevisionStatus();showPage(b.getInt("activeTab",0));}}
  protected void onSaveInstanceState(Bundle b){super.onSaveInstanceState(b);b.putString("item",item.getText().toString());b.putString("local",local.getText().toString());b.putString("qty",qty.getText().toString());b.putLong("editing",editing);b.putString("target",scanTarget);b.putBoolean("keep",keep.isChecked());b.putString("unit",selectedUnit());b.putString("extra",extra.getText().toString());b.putInt("activeTab",activeTab);b.putString("revisionLocal",revisionLocal);b.putBoolean("revisionMode",revisionMode);}
 
 
@@ -54,6 +54,49 @@ public class MainActivity extends Activity {
   return row;
  }
  TextView sectionTitle(String title,String subtitle){TextView t=text(title+"\n"+subtitle,18,navy);android.text.SpannableString styled=new android.text.SpannableString(title+"\n"+subtitle);styled.setSpan(new android.text.style.RelativeSizeSpan(.78f),title.length()+1,styled.length(),android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);t.setText(styled);t.setTypeface(Typeface.create("sans-serif-medium",Typeface.NORMAL));t.setPadding(0,dp(16),0,dp(12));return t;}
+ void showLoginGate(){
+  Dialog gate=new Dialog(this);
+  LinearLayout page=new LinearLayout(this);page.setOrientation(LinearLayout.VERTICAL);
+  page.setGravity(Gravity.CENTER_VERTICAL);page.setPadding(dp(28),dp(30),dp(28),dp(28));
+  page.setBackgroundColor(Color.rgb(245,248,251));
+  TextView mark=text("▣",48,teal);page.addView(mark);
+  TextView brand=text("Estoque Bip",32,navy);brand.setTypeface(null,Typeface.BOLD);page.addView(brand);
+  TextView intro=text("Inventário Anual",18,teal);page.addView(intro);
+  page.addView(text("Entre com sua conta Rotina360 para identificar o operador.",14,Color.DKGRAY));
+  EditText username=input("Usuário ou e-mail",false);page.addView(username);
+  EditText password=input("Senha",false);
+  password.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+  page.addView(password);
+  Button enter=button("Entrar com Rotina360",()->{});
+  enter.setOnClickListener(v->{
+   String user=username.getText().toString().trim(),pass=password.getText().toString();
+   if(user.isEmpty()){username.setError("Informe o usuário");return;}
+   if(pass.isEmpty()){password.setError("Informe a senha");return;}
+   enter.setEnabled(false);enter.setText("Entrando...");
+   RotinaAuth.login(user,pass,(session,error)->{
+    if(isFinishing()||isDestroyed())return;
+    enter.setEnabled(true);enter.setText("Entrar com Rotina360");
+    if(session==null){toast(error==null?"Falha na autenticação":error);return;}
+    try{SecureSession.save(this,session);password.setText("");gate.dismiss();toast("Autenticado. Contagens permanecem offline até ativar sincronização.");}
+    catch(Exception e){toast("Não foi possível salvar a sessão com segurança.");}
+   });
+  });page.addView(enter);
+  org.json.JSONObject existing=SecureSession.load(this);
+  if(existing!=null&&!existing.optString("access_token","").isEmpty()){
+   Button continueButton=button("Continuar sessão existente",()->{
+    InventoryIdentity.ensureSession(this,(session,error)->{
+     if(session!=null){gate.dismiss();toast("Sessão validada. Sincronização ainda não habilitada.");}
+     else toast(error==null?"Entre novamente":error);
+    });
+   });page.addView(continueButton);
+  }
+  page.addView(text("As contagens são salvas no aparelho. Sincronização com Rotina360 em implantação.",12,Color.DKGRAY));
+  ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.addView(page);
+  gate.setContentView(scroll);gate.setCancelable(false);
+  Window window=gate.getWindow();
+  if(window!=null){window.setBackgroundDrawableResource(android.R.color.transparent);window.setLayout(-1,-1);}
+  gate.show();window=gate.getWindow();if(window!=null)window.setLayout(-1,-1);
+ }
  void showRotinaLogin(){
   LinearLayout layout=column();
   EditText identifier=input("Usuário ou e-mail do Rotina360",false);
@@ -157,7 +200,7 @@ public class MainActivity extends Activity {
  accountPage.addView(button("Sair da conta Rotina360",()->new AlertDialog.Builder(this)
   .setMessage("Encerrar a sessão neste aparelho? As contagens offline serão preservadas.")
   .setNegativeButton("Cancelar",null)
-  .setPositiveButton("Sair",(dialog,which)->{SecureSession.clear(this);toast("Sessão encerrada.");}).show()));
+  .setPositiveButton("Sair",(dialog,which)->{SecureSession.clear(this);toast("Sessão encerrada.");showLoginGate();}).show()));
  form=column();form.setBackground(bg(Color.WHITE));form.setElevation(0);form.setPadding(dp(12),dp(8),dp(12),dp(12));LinearLayout.LayoutParams card=new LinearLayout.LayoutParams(-1,-2);card.setMargins(0,dp(3),0,dp(8));form.setLayoutParams(card);form.addView(text("Nova contagem",20,navy));countFeedback=text("Pronto para iniciar a contagem",14,teal);form.addView(countFeedback);form.addView(scanTile(true));local=input("Local: ex. 1-A-02-03",false);form.addView(local);keep=new CheckBox(this);keep.setText("Manter local");keep.setTextColor(navy);keep.setTextSize(14);keep.setChecked(true);form.addView(keep);form.addView(scanTile(false));item=input("Código de barras do produto",false);form.addView(item);packInfo=text("Bipe o produto para consultar o pack.",13,teal);form.addView(packInfo);item.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int a,int c,int f){}public void onTextChanged(CharSequence s,int a,int b,int c){updatePackInfo();}public void afterTextChanged(Editable e){}});form.addView(text("3  UNIDADE",14,navy));form.addView(unitChoices());form.addView(text("4  QUANTIDADE",14,navy));qty=input("Quantidade",true);qty.setText("1");form.addView(qty);extraLabel=text("Peças soltas além das caixas / paletes",14,navy);form.addView(extraLabel);extra=input("Quantidade de peças soltas",true);extra.setText("0");form.addView(extra);extra.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int a,int c,int f){}public void onTextChanged(CharSequence s,int a,int b,int c){queuePackCheck();}public void afterTextChanged(Editable e){}});units.setOnCheckedChangeListener((group,id)->updatePackInfo());updatePackInfo();form.addView(button("Salvar contagem",()->save()));Button cancel=button("Limpar / cancelar",()->clear());form.addView(cancel);countPage.addView(form);
  local.setImeOptions(EditorInfo.IME_ACTION_NEXT);local.setOnFocusChangeListener((view,hasFocus)->{if(!hasFocus&&!local.getText().toString().trim().isEmpty())local.post(()->{View current=getCurrentFocus();if(current==item||current==qty)validateLocal();});});local.setOnEditorActionListener((v,a,e)->{if(a==EditorInfo.IME_ACTION_NEXT||a==EditorInfo.IME_ACTION_DONE||(e!=null&&e.getKeyCode()==KeyEvent.KEYCODE_ENTER)){if(validateLocal()){item.requestFocus();if(countFeedback!=null)countFeedback.setText("Local confirmado • leia o item");}return true;}return false;});item.setOnEditorActionListener((v,a,e)->{if(a==EditorInfo.IME_ACTION_NEXT||a==EditorInfo.IME_ACTION_DONE||(e!=null&&e.getKeyCode()==KeyEvent.KEYCODE_ENTER)){qty.requestFocus();qty.selectAll();if(countFeedback!=null)countFeedback.setText("Item lido • informe a quantidade");return true;}return false;});qty.setOnEditorActionListener((v,a,e)->{if(a==EditorInfo.IME_ACTION_DONE||(e!=null&&e.getAction()==KeyEvent.ACTION_DOWN&&e.getKeyCode()==KeyEvent.KEYCODE_ENTER)){save();return true;}return false;});
  historyPage.addView(sectionTitle("Histórico de contagens","Consulte, edite e exporte registros"));historyPage.addView(text("Toque em um registro para editar ou excluir.",13,Color.DKGRAY));search=input("Pesquisar item ou local",false);historyPage.addView(search);search.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int a,int c,int f){} public void onTextChanged(CharSequence s,int a,int before,int count){filter=s.toString();refresh();}public void afterTextChanged(Editable e){}});LinearLayout exports=column();exports.setBackground(bg(Color.WHITE));exports.setElevation(dp(2));exports.addView(text("Compartilhar relatório",20,navy));exports.addView(text("Envie todas as contagens para o solicitante.",13,Color.DKGRAY));exports.addView(button("Enviar CSV por e-mail",()->emailDialog()));exports.addView(button("Salvar CSV no aparelho",()->export()));historyPage.addView(exports);history=column();historyPage.addView(history);historyPage.addView(text("Os dados ficam neste aparelho. Exporte para guardar uma cópia antes de desinstalar.",12,Color.DKGRAY));refresh();showPage(0);local.requestFocus();getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);}
