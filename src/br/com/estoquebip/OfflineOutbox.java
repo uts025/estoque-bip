@@ -25,16 +25,16 @@ final class OfflineOutbox {
   db.execSQL("CREATE TRIGGER IF NOT EXISTS inv_anual_outbox_insert " +
     "AFTER INSERT ON registros WHEN NEW.sync_uuid IS NOT NULL BEGIN " +
     "INSERT INTO inv_anual_outbox(event_uuid,count_uuid,action,item,codigo_lido,local,quantidade,unidade,pecas_extras,pack_pc,total_pc,recorded_at,changed_at,queued_at) " +
-    "VALUES(lower(hex(randomblob(16))),NEW.sync_uuid,'criacao',NEW.item,NEW.codigo_lido,NEW.local,NEW.quantidade,NEW.unidade,NEW.pecas_extras,NEW.pack_pc,NEW.total_pc,NEW.data,NEW.alterado,CAST(strftime('%s','now') AS INTEGER)*1000); END");
+    "VALUES(lower(substr(hex(randomblob(4)),1,8)||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2,3)||'-a'||substr(hex(randomblob(2)),2,3)||'-'||hex(randomblob(6))),NEW.sync_uuid,'criacao',NEW.item,NEW.codigo_lido,NEW.local,NEW.quantidade,NEW.unidade,NEW.pecas_extras,NEW.pack_pc,NEW.total_pc,NEW.data,NEW.alterado,CAST(strftime('%s','now') AS INTEGER)*1000); END");
   db.execSQL("CREATE TRIGGER IF NOT EXISTS inv_anual_outbox_update " +
     "AFTER UPDATE OF item,codigo_lido,local,quantidade,unidade,pecas_extras,pack_pc,total_pc,alterado ON registros " +
     "WHEN NEW.sync_uuid IS NOT NULL BEGIN " +
     "INSERT INTO inv_anual_outbox(event_uuid,count_uuid,action,item,codigo_lido,local,quantidade,unidade,pecas_extras,pack_pc,total_pc,recorded_at,changed_at,queued_at) " +
-    "VALUES(lower(hex(randomblob(16))),NEW.sync_uuid,'edicao',NEW.item,NEW.codigo_lido,NEW.local,NEW.quantidade,NEW.unidade,NEW.pecas_extras,NEW.pack_pc,NEW.total_pc,NEW.data,NEW.alterado,CAST(strftime('%s','now') AS INTEGER)*1000); END");
+    "VALUES(lower(substr(hex(randomblob(4)),1,8)||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2,3)||'-a'||substr(hex(randomblob(2)),2,3)||'-'||hex(randomblob(6))),NEW.sync_uuid,'edicao',NEW.item,NEW.codigo_lido,NEW.local,NEW.quantidade,NEW.unidade,NEW.pecas_extras,NEW.pack_pc,NEW.total_pc,NEW.data,NEW.alterado,CAST(strftime('%s','now') AS INTEGER)*1000); END");
   db.execSQL("CREATE TRIGGER IF NOT EXISTS inv_anual_outbox_delete " +
     "BEFORE DELETE ON registros WHEN OLD.sync_uuid IS NOT NULL BEGIN " +
     "INSERT INTO inv_anual_outbox(event_uuid,count_uuid,action,item,codigo_lido,local,quantidade,unidade,pecas_extras,pack_pc,total_pc,recorded_at,changed_at,queued_at) " +
-    "VALUES(lower(hex(randomblob(16))),OLD.sync_uuid,'exclusao',OLD.item,OLD.codigo_lido,OLD.local,OLD.quantidade,OLD.unidade,OLD.pecas_extras,OLD.pack_pc,OLD.total_pc,OLD.data,OLD.alterado,CAST(strftime('%s','now') AS INTEGER)*1000); END");
+    "VALUES(lower(substr(hex(randomblob(4)),1,8)||'-'||hex(randomblob(2))||'-4'||substr(hex(randomblob(2)),2,3)||'-a'||substr(hex(randomblob(2)),2,3)||'-'||hex(randomblob(6))),OLD.sync_uuid,'exclusao',OLD.item,OLD.codigo_lido,OLD.local,OLD.quantidade,OLD.unidade,OLD.pecas_extras,OLD.pack_pc,OLD.total_pc,OLD.data,OLD.alterado,CAST(strftime('%s','now') AS INTEGER)*1000); END");
  }
 
  static void acknowledge(SQLiteDatabase db, String eventUuid) {
