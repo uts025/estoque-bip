@@ -86,10 +86,12 @@ public class MainActivity extends Activity {
   accountPage.setVisibility(tab==3?View.VISIBLE:View.GONE);
   if(screenScroll!=null)screenScroll.post(()->screenScroll.scrollTo(0,0));
  }
- void openMenu(){
+ void openFabMenu(View anchor){
+  PopupMenu popup=new PopupMenu(this,anchor,Gravity.END);
   final String[] options={"Contagem","Histórico","Revisão de local","Conta"};
-  new AlertDialog.Builder(this).setTitle("Menu · Estoque Bip").setItems(options,(dialog,which)->showPage(which))
-   .setNegativeButton("Fechar",null).show();
+  for(int index=0;index<options.length;index++)popup.getMenu().add(0,index,index,options[index]);
+  popup.setOnMenuItemClickListener(option->{showPage(option.getItemId());return true;});
+  popup.show();
  }
  void updateRevisionStatus(){
   if(revisionStatus==null)return;
@@ -141,7 +143,7 @@ public class MainActivity extends Activity {
     clear();updateRevisionStatus();showPage(2);
    }).show();
  }
- void draw(){getWindow().setStatusBarColor(navy);getWindow().setNavigationBarColor(navy); FrameLayout appFrame=new FrameLayout(this);appFrame.setBackgroundColor(Color.rgb(245,248,251));ScrollView scroll=new ScrollView(this);screenScroll=scroll;scroll.setFillViewport(true);root=column();root.setPadding(0,0,0,dp(84));root.setBackgroundColor(Color.rgb(245,248,251));scroll.addView(root);appFrame.addView(scroll,new FrameLayout.LayoutParams(-1,-1));setContentView(appFrame);Button fab=new Button(this);fab.setText("+");fab.setTextSize(28);fab.setAllCaps(false);fab.setTextColor(Color.WHITE);fab.setContentDescription("Abrir menu de telas");GradientDrawable fabShape=new GradientDrawable();fabShape.setShape(GradientDrawable.OVAL);fabShape.setColor(teal);fab.setBackground(fabShape);fab.setElevation(dp(8));fab.setOnClickListener(v->openMenu());FrameLayout.LayoutParams fabPosition=new FrameLayout.LayoutParams(dp(60),dp(60),Gravity.BOTTOM|Gravity.END);fabPosition.setMargins(0,0,dp(18),dp(22));appFrame.addView(fab,fabPosition);
+ void draw(){getWindow().setStatusBarColor(navy);getWindow().setNavigationBarColor(navy); FrameLayout appFrame=new FrameLayout(this);appFrame.setBackgroundColor(Color.rgb(245,248,251));ScrollView scroll=new ScrollView(this);screenScroll=scroll;scroll.setFillViewport(true);root=column();root.setPadding(0,0,0,dp(84));root.setBackgroundColor(Color.rgb(245,248,251));scroll.addView(root);appFrame.addView(scroll,new FrameLayout.LayoutParams(-1,-1));setContentView(appFrame);Button fab=new Button(this);fab.setText("+");fab.setTextSize(28);fab.setAllCaps(false);fab.setTextColor(Color.WHITE);fab.setContentDescription("Abrir menu de telas");GradientDrawable fabShape=new GradientDrawable();fabShape.setShape(GradientDrawable.OVAL);fabShape.setColor(teal);fab.setBackground(fabShape);fab.setElevation(dp(8));fab.setOnClickListener(v->openFabMenu(fab));FrameLayout.LayoutParams fabPosition=new FrameLayout.LayoutParams(dp(60),dp(60),Gravity.BOTTOM|Gravity.END);fabPosition.setMargins(0,0,dp(18),dp(22));appFrame.addView(fab,fabPosition);
  LinearLayout header=column();header.setBackgroundColor(navy);header.setPadding(dp(16),dp(7),dp(16),dp(8));LinearLayout top=new LinearLayout(this);top.setOrientation(LinearLayout.HORIZONTAL);top.setGravity(Gravity.CENTER_VERTICAL);header.addView(top);TextView title=text("Estoque Bip",19,Color.WHITE);title.setTypeface(null,Typeface.BOLD);top.addView(title,new LinearLayout.LayoutParams(0,-2,1));stats=text("",12,Color.WHITE);stats.setPadding(0,0,0,0);header.addView(stats);syncIndicator=text("Operação offline • sincronização indisponível",11,Color.rgb(194,237,234));syncIndicator.setPadding(0,0,0,0);header.addView(syncIndicator);root.addView(header);
  
  countPage=column();countPage.setPadding(dp(8),dp(6),dp(8),dp(10));historyPage=column();revisionPage=column();accountPage=column();root.addView(countPage);root.addView(historyPage);root.addView(revisionPage);root.addView(accountPage);
