@@ -105,13 +105,27 @@ public class MainActivity extends Activity {
   updateRevisionStatus();showPage(0);item.requestFocus();
   toast("Revisão iniciada. Bipe todos os itens deste local.");
  }
+ void showRevisionDraft(){
+  if(!revisionMode||revisionLocal.isEmpty()){toast("Inicie uma revisão.");return;}
+  StringBuilder lines=new StringBuilder();
+  try(Cursor c=db.rawQuery("SELECT item,quantidade,unidade,total_pc FROM inv_anual_revisao_rascunho WHERE local=? ORDER BY id",new String[]{revisionLocal})){
+    while(c.moveToNext()){
+     if(lines.length()>0)lines.append("\\n");
+     lines.append(c.getString(0)).append(" — ").append(c.getString(1)).append(" ").append(c.getString(2)==null?"PC":c.getString(2));
+     if(c.getString(3)!=null)lines.append(" (").append(c.getString(3)).append(" PC)");
+    }
+  }
+  new AlertDialog.Builder(this).setTitle("Revisão • "+revisionLocal)
+   .setMessage(lines.length()==0?"Nenhum item rebipado.":lines.toString())
+   .setPositiveButton("Fechar",null).show();
+ }
  void finishRevision(){
   if(!revisionMode||revisionLocal.isEmpty()){toast("Inicie uma revisão primeiro.");return;}
   int before=LocationRevision.previous(db,revisionLocal),after=LocationRevision.count(db,revisionLocal);
   if(after<1){toast("Bipe ao menos um item antes de confirmar.");return;}
-  new AlertDialog.Builder(this).setTitle("Substituir contagens do local?")
+  new AlertDialog.Builder(this).setTitle("Substituir TODAS as contagens do local?")
    .setMessage("Local: "+revisionLocal+"\nContagens anteriores: "+before+"\nNovas contagens: "+after+
-    "\n\nAs contagens anteriores serão substituídas somente após confirmar. O histórico de eventos será mantido para auditoria.")
+    "\n\nItens não rebipados serão removidos da contagem ativa deste local. Confira todos os itens antes de confirmar. O histórico de eventos será preservado.")
    .setNegativeButton("Voltar",null).setPositiveButton("Confirmar revisão",(d,w)->{
     try{LocationRevision.replace(db,revisionLocal);revisionMode=false;revisionLocal="";revisionInput.setText("");
      clear();refresh();updateRevisionStatus();showPage(2);toast("Revisão concluída. Contagens substituídas.");
@@ -131,7 +145,7 @@ public class MainActivity extends Activity {
  LinearLayout header=column();header.setBackgroundColor(navy);header.setPadding(dp(16),dp(7),dp(16),dp(8));LinearLayout top=new LinearLayout(this);top.setOrientation(LinearLayout.HORIZONTAL);top.setGravity(Gravity.CENTER_VERTICAL);header.addView(top);TextView title=text("Estoque Bip",19,Color.WHITE);title.setTypeface(null,Typeface.BOLD);top.addView(title,new LinearLayout.LayoutParams(0,-2,1));Button menu=new Button(this);menu.setText("☰");menu.setContentDescription("Abrir menu de navegação");menu.setAllCaps(false);menu.setTextSize(22);menu.setTextColor(Color.WHITE);menu.setBackgroundColor(Color.TRANSPARENT);menu.setOnClickListener(v->openMenu());top.addView(menu,new LinearLayout.LayoutParams(dp(56),dp(44)));stats=text("",12,Color.WHITE);stats.setPadding(0,0,0,0);header.addView(stats);syncIndicator=text("Operação offline • sincronização indisponível",11,Color.rgb(194,237,234));syncIndicator.setPadding(0,0,0,0);header.addView(syncIndicator);root.addView(header);
  
  countPage=column();countPage.setPadding(dp(8),dp(6),dp(8),dp(10));historyPage=column();revisionPage=column();accountPage=column();root.addView(countPage);root.addView(historyPage);root.addView(revisionPage);root.addView(accountPage);
- revisionPage.addView(sectionTitle("Revisão de local","Recontagem integral com confirmação"));revisionInput=input("Bipe o local a revisar",false);revisionPage.addView(revisionInput);revisionPage.addView(button("Ler local pela câmera",()->scan("review_local")));revisionPage.addView(button("Iniciar / continuar revisão",()->beginRevision()));revisionStatus=text("",15,navy);revisionPage.addView(revisionStatus);revisionPage.addView(button("Rebipar itens do local",()->{if(revisionMode){showPage(0);item.requestFocus();}else toast("Inicie a revisão primeiro.");}));revisionPage.addView(button("Concluir e substituir contagens",()->finishRevision()));revisionPage.addView(button("Descartar revisão",()->cancelRevision()));updateRevisionStatus();
+ revisionPage.addView(sectionTitle("Revisão de local","Recontagem integral com confirmação"));revisionInput=input("Bipe o local a revisar",false);revisionPage.addView(revisionInput);revisionPage.addView(button("Ler local pela câmera",()->scan("review_local")));revisionPage.addView(button("Iniciar / continuar revisão",()->beginRevision()));revisionStatus=text("",15,navy);revisionPage.addView(revisionStatus);revisionPage.addView(button("Conferir itens rebipados",()->showRevisionDraft()));revisionPage.addView(button("Rebipar itens do local",()->{if(revisionMode){showPage(0);item.requestFocus();}else toast("Inicie a revisão primeiro.");}));revisionPage.addView(button("Concluir e substituir contagens",()->finishRevision()));revisionPage.addView(button("Descartar revisão",()->cancelRevision()));updateRevisionStatus();
  accountPage.addView(sectionTitle("Conta e dispositivo","Sessão do Rotina360"));accountPage.addView(text("Login, sessão e dados do coletor",13,Color.DKGRAY));
  accountPage.addView(button("Entrar com conta Rotina360 (teste)",()->showRotinaLogin()));
  accountPage.addView(button("Verificar / renovar sessão",()->InventoryIdentity.ensureSession(this,(session,error)->{
