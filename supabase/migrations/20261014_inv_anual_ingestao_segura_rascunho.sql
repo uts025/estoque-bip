@@ -64,6 +64,8 @@ begin
   join public.inv_anual_locais lf on lf.codigo=f.local_final and lf.filial=f.filial
   where f.campanha_id=v_campaign and f.usuario_id=v_actor and f.ativo
     and f.filial=v_filial and v_local between f.local_inicial and f.local_final
+    and length(f.local_inicial)=length(f.local_final)
+    and length(v_local)=length(f.local_inicial)
  ) then raise exception 'Local fora da faixa do operador' using errcode='42501'; end if;
  select c.versao,c.campanha_id,c.dispositivo_id,c.operador_id,c.local_codigo,c.excluido_em
  into v_current,v_current_campaign,v_current_device,v_current_actor,v_previous_local,v_deleted
