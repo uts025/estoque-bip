@@ -197,6 +197,25 @@ public class MainActivity extends Activity {
   if(session==null){toast(error==null?"Sessão indisponível":error);return;}
   toast("Conta validada. Dispositivo: "+InventoryIdentity.deviceId(this).substring(0,8));
  })));
+ accountPage.addView(text("SINCRONIZAÇÃO DO INVENTÁRIO",15,navy));
+ accountPage.addView(text("O envio exige campanha aberta, operador e coletor autorizados no Rotina360. Enquanto não estiverem configurados, as contagens continuam no aparelho.",13,Color.DKGRAY));
+ accountPage.addView(button("Consultar pendências offline",()->{
+  try(Cursor c=db.rawQuery("SELECT count(*) FROM inv_anual_outbox WHERE acknowledged_at IS NULL",null)){
+   if(c.moveToFirst())toast(c.getInt(0)+" evento(s) aguardando envio.");
+  }catch(Exception e){toast("Não foi possível consultar pendências.");}
+ }));
+ accountPage.addView(button("Sincronizar com campanha autorizada",()->{
+  EditText campaign=input("UUID da campanha autorizada",false);
+  LinearLayout content=column();content.addView(text("Este envio requer aprovação prévia do dispositivo e da faixa de locais pelo gestor.",13,navy));content.addView(campaign);
+  new AlertDialog.Builder(this).setTitle("Enviar contagens ao Rotina360").setView(content)
+   .setNegativeButton("Cancelar",null).setPositiveButton("Verificar e enviar",(dialog,which)->{
+    InventorySync.send(this,db,campaign.getText().toString().trim(),(sent,remaining,error)->{
+     refresh();new AlertDialog.Builder(this).setTitle(error==null?"Envio confirmado":"Sincronização não concluída")
+      .setMessage("Confirmados pelo servidor: "+sent+"\nPendentes no aparelho: "+(remaining<0?"indisponível":remaining)+(error==null?"":"\n"+error))
+      .setPositiveButton("OK",null).show();
+    });
+   }).show();
+ }));
  accountPage.addView(button("Sair da conta Rotina360",()->new AlertDialog.Builder(this)
   .setMessage("Encerrar a sessão neste aparelho? As contagens offline serão preservadas.")
   .setNegativeButton("Cancelar",null)
