@@ -15,6 +15,7 @@ final class RotinaAuth {
  static final String PROJECT_URL="https://acrfztgyuuisjtxbgxih.supabase.co";
  // Public anonymous JWT required by legacy verify_jwt gateway. NOT a service role key.
  private static final String ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjcmZ6dGd5dXVpc2p0eGJneGloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5MzY5NzUsImV4cCI6MjA5NzUxMjk3NX0.pwr-jnIQYL2mi5QSS0d1WoEhC_RYZPbEv6mZzwG2yDs";
+ static String publicAnonKey(){return ANON_KEY;}
  private static final ExecutorService EXECUTOR=Executors.newSingleThreadExecutor();
  interface Callback { void complete(JSONObject session,String error); }
  static void refresh(String refreshToken,Callback callback) {
